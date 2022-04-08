@@ -1,0 +1,267 @@
+\documentclass{beamer}
+
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usetheme{metropolis}
+
+
+\usepackage{baskervillef}
+\usepackage[varqu,varl,var0]{inconsolata}
+\usepackage[scale=.95,type1]{cabin}
+\usepackage[baskerville,vvarbb]{newtxmath}
+\usepackage[cal=boondoxo]{mathalfa}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan
+}
+
+
+\title{Bootstrap}
+\author{Marcin Kostrzewa}
+\date{\today}
+
+<<setup, include=FALSE>>=
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(kableExtra)
+library(AER)
+pdf.options(encoding='CP1250')
+opts_chunk$set(fig.path='figure/beamer-', fig.align='center',
+               fig.show='hold', size='footnotesize')
+knitr::opts_chunk$set(background="#DCDCDC")
+@
+
+\begin{document}
+
+\begin{frame}{}
+    \titlepage
+\end{frame}
+
+
+\begin{frame}{Uwagi wstępne}
+Najpierw rozróźnijmy podejście parametryczne od nieparametrycznego. Polegają one kolejno na: 
+
+\begin{itemize}
+  \item \textit{w przypadku podejścia parametrycznego} --- zakładamy w naszym modelu znajomość rozkładu, z którego pochodzi analizowana próbka,
+  \item \textit{w przypadku podejścia nieparametrycznego} --- nie zakładamy znajomości rozkładu, z którego pochodzi posiadana próbka.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Po co w ogóle bootstrap?}
+Zakładając znajomość rozkładu próby jesteśmy w stanie (choć nie zawsze, a jak już, to nie jest to łatwe) wyznaczyć rozkład statystyki estymującej daną cechę, podać przedziały ufności, zastosować test statystyczny. Co jednak, jeśli nie znamy rozkładu, a mamy do dyspozycji jedynie pewną próbkę? Z jednej wartości liczbowej trudno wyciągać jakiekolwiek wnioski, trzeba zaproponwoać inne podejście.
+\end{frame}
+
+
+\begin{frame}{Co to? (Bootstrap nieparametryczny --- pomysł Efroniego)}
+
+Metoda bootstrap polega na wylosowywaniu z próbki, którą posiadamy, $B$ (domyślnie liczba pokaźnych rozmiarów) próbek tej samej wielkości. Losowanie odbywa się z powtórzeniami. Tak stworzone próbki nazywamy replikacjami bootstrapowymi lub po prostu próbkami bootstrapowymi.
+
+\end{frame}
+
+
+\begin{frame}{Schemat postępowania}
+
+Załóżmy, że mamy próbkę $X_1, X_2, \ldots, X_n$. Interesuje nas oszacowanie i przeprowadzenie wnioskowania dla cechy $\theta$. 
+
+\begin{enumerate}
+\item Uzbrajamy się w statystykę $\hat{\theta} = T\left(X_1, X_2, \ldots,\,X_n\right)$. 
+\item Powtarzamy $B$-krotnie --- dla $i = 1,\ldots, B$:
+\begin{enumerate}
+  \item tworzymy replikację bootstrapową $X_1^{(i)}, \ldots X_n^{(i)}$,
+  \item wyznaczamy $\hat{\theta}_{i}^{*} = T\left(X_1^{(i)}, \ldots, X_n^{(i)}\right)$.
+\end{enumerate}
+\item Wnioskujemy na podstawie uzyskanych oszacowań $\hat{\theta}_{1}^{*}$, $\ldots$, $\hat{\theta}_B^{*}$.
+\end{enumerate}
+
+\end{frame}
+
+
+\begin{frame}{Wyznaczenie błędu}
+
+Co z wariancją $\hat\theta$? W bootstrapie możemy dobrze przybliżyć ją za pomocą wariancji replikacji bootstrapowych, czyli za pomocą:
+\begin{align*}
+  \text{Var}(\hat{\mathbf{\theta}}^*)= \frac{1}{B-1}\sum_{i=1}^{B}\left(\hat{\theta}_i^{*} - \bar{\theta}^*\right)^2,
+\end{align*}
+gdzie $\bar{\theta}^*=\frac{1}{B}\sum_{i=1}^B\hat{\theta}_{i}^*$.
+
+Błąd standardowy estymatora to $\text{SE}\left(\hat{\theta}\right) \approx \sqrt{\text{Var}(\hat{\mathbf{\theta}}^*)}$.
+
+\end{frame}
+
+
+\begin{frame}{Konstrukcja przedziałów ufności (1)}
+
+Wyróźnia się różne metody konstrukcji przybliżonych przedziałów ufności. Załóźmy, że dzięki metodzie bootstrap uzyskaliśmy zbiór replikacji bootstrapowych $\hat{\Theta}^* = \left(\hat{\theta}_1^*, \ldots, \hat{\theta}_B^*\right)$. 
+
+\begin{itemize}
+
+\item Przedziały kwantylowe --- bierzemy po prostu kwantyle odpowiedniego rzędu z $\hat{\Theta}^*$, uzyskując przedział:
+
+\begin{align*}
+  \left(Q_{\frac{\alpha}{2}}\left(\hat{\Theta}^*\right),Q_{1 - \frac{\alpha}{2}}\left(\hat{\Theta}^*\right)\right)
+\end{align*}
+
+\item Przedziały BBCI (\textit{bootstrap basic confidence interval} --- nikt poza mną nie używa takiego skrótu) --- mają one postać następującą:
+
+\begin{align*}
+  \left(2\hat{\theta} - Q_{1 - \frac{\alpha}{2}}\left(\hat{\Theta}^*\right), 2\hat{\theta} + Q_{\frac{\alpha}{2}}\left(\hat{\Theta}^*\right)\right)
+\end{align*}
+
+\item Przedziały ,,normalne'' --- zakłada się normalność $\hat{\mathbf{\theta}}^*$.
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Konstrukcja przedziałów ufności (2)}
+
+\begin{itemize}
+\item Przedzialy studentyzowane --- zakłada się podobieństwo rozkładu:
+
+\begin{align*}
+  \frac{\hat{\theta}-\theta}{\sigma_{\hat{\theta}}}\approx\frac{\hat{\theta}^* - \hat{\theta}}{\sigma_{\hat{\theta}^*}} = q.
+\end{align*}
+
+Przedziały przyjmują postać:
+\begin{align*}
+  \left(\hat{\theta} - \sigma_{\hat{\theta}}Q_{1 - \frac{\alpha}{2}}\left(\mathbf{q}\right), \hat{\theta} + \sigma_{\hat{\theta}}Q_{\frac{\alpha}{2}}\left(\mathbf{q}\right)\right).
+\end{align*}
+
+$\sigma_{\hat{\theta}}\approx \text{SE}\left(\hat{\Theta}^*\right)$, $\mathbf{q} = \left(q_1, \ldots, q_B\right)$, a dla każdej próbki bootstrapowej $\sigma_{\hat{\theta}^*}$ wyznaczamy za pomocą \ldots metody bootstrap.
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Konstrukcja przedziałów ufności (3)}
+
+\begin{itemize}
+\item Przedziały BCa (ang. \textit{bias-corrected}), które przybierają postać:
+\begin{align*}
+&\left(\hat{\theta}^*_{\alpha_1}, \hat{\theta}^{*}_{\alpha_2}\right), \quad\text{gdzie}\\
+\alpha_1 &= \phi\left(\hat{z}_0 + \frac{\hat{z}_0 + z_{\alpha}}{1 - \hat{a}\left(\hat{z}_0 + z_{\alpha}\right)}\right)\\
+\alpha_2 &= \phi\left(\hat{z}_0 + \frac{\hat{z}_0 + z_{1-\alpha}}{1 - \hat{a}\left(\hat{z}_0 + z_{1-\alpha}\right)}\right),
+\end{align*}
+gdzie $\hat{a}$, $\hat{z}_0$ to pewne parametry, $z_{\alpha}$ to kwantyl rozkładu normalnego, a $\phi(\cdot)$ to jego dystrybuanta
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{}
+
+\huge Czas na przykład
+
+\end{frame}
+
+
+\begin{frame}{Z lekka więcej teorii \ldots}
+
+Do tej pory powiedzieliśmy sobie tylko, jak korzystać z bootstrapu, jak wyznaczać błąd standardowy czy przedziały ufności. Na pewno w niektórych z Waszych głów pojawiło się pytanie --- co uzasadnia korzystanie z tej metody?
+
+\end{frame}
+
+
+\begin{frame}{Estymatory typu plug-in}
+  Estymatory możemy wyznaczać jako funkcjonały --- przekształcenie z przestrzeni funkcji w pewne ciało (np. $\mathbb{R}$). Najczęściej będziemy mieli do czynienia z funkcjonałami dystrybuany.
+  
+Przykład --- średnia:
+\begin{align*}
+\mu = T(F) = \int x \,\operatorname{d}F(x)
+\end{align*}
+
+Istnieje taki twór jak dystrybuanta empiryczna --- $\hat{F}_n(x)$. Jeżeli podstawimy sobie w miejsce $F$ dystrybuantę empiryczną $\hat{F}_n$ otrzymamy estymator pewnej cechy statystycznej --- $\hat{\theta} = T(\hat{F}_n)$, to otrzymamy estymator typu \textit{plug-in}.
+\end{frame}
+
+
+\begin{frame}{Czemu bootstrap działa?}
+
+Sama empiryczna dystrybuanta to porządny estymator --- nieobciążony o wariancji zbiegającej do $0$, zgodny. 
+
+Tworzenie próbki bootstrapowej to tak naprawdę generowanie próbki z rozkładu zadanego przez empiryczną dystrybuantę. 
+
+Zatem replikacje bootstrapowe można uznać za estymacje za pomocą estymatora plug-in $\hat{\theta} = T\left(\hat{F}_n, n\right)$, który najczęściej dobrze przybliża estymator dokładny $\hat{\theta} = T\left(F, n\right)$.
+
+\end{frame}
+
+
+\begin{frame}{Inne rodzaje bootstrapu}
+
+\begin{itemize}
+\item Bootstrap parametryczny
+\item Bootstrap wygładzony (\textit{smoothed})
+\item Boootstrap wpół-parametryczny (\textit{semiparametric})
+\item Bootstrap bayesowski
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Gdzie jeszcze używamy bootstrapu?}
+
+\begin{itemize}
+  \item Bagging
+  \item Regresja liniowa
+  \item Szeregi czasowe
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Podsumowanie}
+
+Kiedy warto sięgnąć?
+
+\begin{itemize}
+  \item małe próbki (problem z asymptotycznością),
+  \item skomplikowana estymacja.
+\end{itemize}
+
+Kiedy nie stosować?
+
+\begin{itemize}
+\item Statystyka $T$ nie jest dostatecznie gładka.
+\item Próbka jest bardzo mała.
+\item \href{https://notstatschat.tumblr.com/post/156650638586/when-the-bootstrap-doesnt-work}{Zajrzyj tutaj.}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{}
+
+\huge Dzięki za uwagę :)
+
+\end{frame}
+
+
+\begin{frame}{Źródełka}
+
+\begin{itemize}
+  \item \href{http://www.ru.ac.bd/stat/wp-content/uploads/sites/25/2019/03/501_02_Efron_Introduction-to-the-Bootstrap.pdf}{Efron B., Tibshirani R.J., An Introduction to the Bootstrap}
+  \item \href{http://faculty.washington.edu/yenchic/19A_stat535/Lec10_bootstrap.pdf}{Yen-Chi Chen, The Bootstrap}
+    \item \href{http://www.czm.mif.pg.gda.pl/wp-content/uploads/baza\%20wiedzy/met-mat-med/Gulgowski-Wolnik.pdf}{Jacek Gulgowski, Barbara Wolnik, Metody bootstrapowe w statystyce}
+  \item \href{https://www.stat.cmu.edu/~cshalizi/402/lectures/08-bootstrap/lecture-08.pdf}{Taki wykładzik}
+\end{itemize}
+
+\end{frame}
+
+
+
+\end{document}
