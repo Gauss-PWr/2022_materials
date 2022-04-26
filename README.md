@@ -1,1 +1,1 @@
-# lecture_noteboooks
+# lecture_notebooks
